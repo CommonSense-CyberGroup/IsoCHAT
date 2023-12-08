@@ -20,7 +20,7 @@
   - [P2P Chat Client](#p2p-chat-client)
   - [Security Considerations](#security-considerations)
   - [Feature Roadmap](#feature-roadmap)
-- [Tutorial](#tutorial)
+- [Tutorial and Usage](#tutorial-and-usage)
 - [Support Common Sense Cyber Group](#support-cscg)
 - [Disclaimers](#disclaimers)
  
@@ -46,7 +46,7 @@
 ## Feature Roadmap
 
 <br><br>
-# Tutorial
+# Tutorial and Usage
 
 <br><br>
 # Support CSCG
