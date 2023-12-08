@@ -22,7 +22,7 @@
   - [Feature Roadmap](#feature-roadmap)
 - [Tutorial and Usage](#tutorial-and-usage)
 - [Support Common Sense Cyber Group](#support-cscg)
-- [Disclaimers](#disclaimers)
+- [Disclaimer](#disclaimer)
  
 
 <br><br>
@@ -56,4 +56,5 @@
 
 
 <br><br>
-# Disclaimers
+# Disclaimer
+The use of code contained in this repository, either in part or in its totality, for malicious use or intent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for misuses or damages caused by any code contained in this repository in any event that, accidentally or otherwise, it comes to be utilized by a threat agent or unauthorized entity as a means to compromise the security, privacy, confidentiality, integrity, and/or availability of systems and their associated resources.
