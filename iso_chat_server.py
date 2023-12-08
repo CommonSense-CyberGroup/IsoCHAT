@@ -20,7 +20,7 @@ Purpose:
     -Config file is used to have user enter the IP and Port that they wish the server to use
 
 To Do:
-    -Test connecting a 3rd user to a chat with the same username and see if it can steal the convo. If yes, need to block duplicate usernames from joining
+    -Set up blocking of duplicating of usernames (if there is a user with that name already on the server, do not allow them to join)
 
     -Down the road on server deployments, logging will be aggrigated and put into something like Elkstack for getting stats (For hosted servers)
     -Down the road, set up group chatting
