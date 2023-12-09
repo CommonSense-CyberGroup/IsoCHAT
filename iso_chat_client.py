@@ -22,7 +22,6 @@ Purpose:
 
 To Do:
     -Pretty UI option as well instead of CLI only (possibility of both)
-    -Add additional error checking for special symbols in username validation (include more wacky ascii characters)
 '''
 
 ###IMPORT LIBRARIES###
@@ -39,12 +38,12 @@ import socket                   #https://docs.python.org/3/library/socket.html -
 import ssl                      #https://docs.python.org/3/library/ssl.html - Used for encrypting client sockets to the proxy server for secure communication
 import ipaddress                #https://docs.python.org/3/library/ipaddress.html - Used for validating the IP we get back using requests
 import sys                      #https://docs.python.org/3/library/sys.html - Used for error catching
+import re                       #https://docs.python.org/3/library/re.html - Used for validation and sanitization
 
 
 ### DEFINE VARIABLES ###
 project_root = f'{dirname(__file__)}/' #Holds the root of the project for output
 stop_threads = False                #Used for stopping the thread without throwing errors
-
 
 ### FUNCTIONS ###
 #Function to read in configuration file in order to get important and relevant values
@@ -95,7 +94,7 @@ def read_config():
                         USER1 = int((row.split(":")[1].replace("\n", "")))
 
                         #Validate user1
-                        if any(char in "'`~!@#$%^&*()_=+[{]}\\|:;<,>/?' " for char in USER1):
+                        if re.search(r'(\s+|[\W_])', USER1):
                             print(Fore.RED + "Invalid user_1_endpoint from config file! Please check syntax and remove special characters!" + Style.RESET_ALL)
                             quit()
 
@@ -109,7 +108,7 @@ def read_config():
                         USER1 = int((row.split(":")[1].replace("\n", "")))
 
                         #Validate user2
-                        if any(char in "'`~!@#$%^&*()_=+[{]}\\|:;<,>/?' " for char in USER2):
+                        if re.search(r'(\s+|[\W_])', USER2):
                             print(Fore.RED + "Invalid user_2_endpoint from config file! Please check syntax and remove special characters!" + Style.RESET_ALL)
                             quit()
 
@@ -201,7 +200,7 @@ def chat_session_setup():
             user_1_endpoint = input("Enter your username: ")
 
             #Check username for valid characters
-            if any(char in "'`~!@#$%^&*()_=+[{]}\\|:;<,>/?' " for char in user_1_endpoint):
+            if re.search(r'(\s+|[\W_])', user_1_endpoint):
                 print(Fore.RED + "\n\t[!] ERROR: Invalid character in username! [!]" + Style.RESET_ALL)
                 time.sleep(3)
                 val1 = False
@@ -224,7 +223,7 @@ def chat_session_setup():
             user_2_endpoint = input("Enter partner username: ")
 
             #Check username for valid characters
-            if any(char in "'`~!@#$%^&*()_=+[{]}\\|:;<,>/?' " for char in user_2_endpoint):
+            if re.search(r'(\s+|[\W_])', user_2_endpoint):
                     print(Fore.RED + "\n\t[!] ERROR: Invalid character in partner username! [!]" + Style.RESET_ALL)
                     time.sleep(3)
                     val2 = False
