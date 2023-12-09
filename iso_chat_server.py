@@ -17,11 +17,9 @@ Purpose:
     -This script functions as the proxy server between the secure chat clients
     -All this server does is accept connections from the chat clients, and then forwards the messages to their destined partner
     -For a more detailed look into the security features and how they are used, check out the IsoCHAT Informational Guide
-    -Config file is used to have user enter the IP and Port that they wish the server to use
+    -Config file contains necessary configuration items to run server
 
 To Do:
-    -Set up blocking of duplicating of usernames (if there is a user with that name already on the server, do not allow them to join)
-
     -Down the road, set up group chatting / rooms
     _in production, this needs to have a cron job that runs every minute to check to see if the script is running. If it is not, start it <docker??>
 '''
@@ -131,6 +129,9 @@ def read_config():
         logger.critical("Issue with Config File: %s", sys.exc_info())
         print("[!] Issue with Config File: ", sys.exc_info())
         quit()
+
+    #Close file to stay clean
+    file.close()
 
 #Function to set up the sockets on the server and start listening for connections
 def socket_setup():
@@ -262,7 +263,7 @@ if __name__ == '__main__':
                 pass
             
             else:
-                #Accept incoming client connections (See if we can do some sort of error-checking here in case we want to prevent random people accessing this socket)
+                #Accept incoming client connections
                 client_socket, client_address = s.accept()
                 logger.info("User successfully connected to the server. Beginning certificate validations")
 
