@@ -6,8 +6,8 @@ Developers:
     Some guy they call Scooter
     Common Sense Cyber Group
 
-Created: 8/5/2021
-Updated: 10/25/2021
+Created: 08/05/2021
+Updated: 12/08/2023
 
 Version 1.1.3
 
@@ -21,6 +21,9 @@ Purpose:
     -For a more detailed look into the security features, check out the IsoCHAT Informational Guide    
 
 To Do:
+    -Pretty UI option as well instead of CLI only (possibility of both)
+    -Add additional error checking for special symbols in username validation (include more wacky ascii characters)
+    -Set up config file like server for user to define their own values (can be used to bypass prompts)
 '''
 
 ###IMPORT LIBRARIES###
@@ -31,21 +34,15 @@ from getpass import getpass     #https://docs.python.org/3/library/getpass.html 
 from colorama import Fore, Style        #https://pypi.org/project/colorama/ - For making the CLI version of this script a little prettier
 import hashlib                  #https://docs.python.org/3/library/hashlib.html - For hashing the messages to ensure there has been no tampering
 import base64                   #https://docs.python.org/3/library/base64.html - For encoding the message payload to base64
-from datetime import datetime, timedelta   #https://docs.python.org/3/library/datetime.html - For getting the current date
+from datetime import datetime   #https://docs.python.org/3/library/datetime.html - For getting the current date
 import time                     #https://docs.python.org/3/library/time.html - For waiting on different things
 import socket                   #https://docs.python.org/3/library/socket.html - Used for setting up the socket connections to the proxy server
-from requests import get                 #https://docs.python-requests.org/en/master/index.html - Used for getting current IP for validation of updated user record
 import ssl                      #https://docs.python.org/3/library/ssl.html - Used for encrypting client sockets to the proxy server for secure communication
 import ipaddress                #https://docs.python.org/3/library/ipaddress.html - Used for validating the IP we get back using requests
 
 
 ###DEFINE VARIABLES###
 project_root = f'{dirname(__file__)}/' #Holds the root of the project for output
-proxy_server_ip = "127.0.0.1"        #IP address of the proxy server
-proxy_server_port = 8088    #Port to connect to the proxy server on
-
-#Set up user variables just for this connection session
-key = "" #Holds the cipher key
 stop_threads = False                #Used for stopping the thread without throwing errors
 
 
@@ -63,7 +60,7 @@ def pre_chat():
     
     #Error checking to ensure that the user is entering a key that is long enough
     while True:
-        key = getpass()
+        key = getpass("Token: ")
 
         #Check for complexity in the key
         if len(key) < 12:
@@ -85,11 +82,13 @@ def pre_chat():
         warning_response = input("Continue? (y/n): ")
 
         #Error checking for warning response
-        if warning_response == "n" or warning_response == "N":
+        if warning_response.lower() == "n":
             quit()
-        elif warning_response == "y" or warning_response == "Y":
+
+        elif warning_response.lower() == "y":
                 print(Fore.LIGHTGREEN_EX + "Happy Chatting :)" + Style.RESET_ALL)
                 break
+        
         else:
             print(Fore.RED + "[!] Error [!] You must enter 'y' or 'n' to continue!" + Style.RESET_ALL)
 
@@ -106,61 +105,62 @@ def chat_session_setup():
     key = ''.join(format(ord(x), 'b') for x in key)
 
     #Set up the current username
-    print(Fore.LIGHTCYAN_EX + "\nFirst, enter your username (If you have not set up a username, follow the information guide!)" + Style.RESET_ALL)
+    print(Fore.LIGHTCYAN_EX + "\nEnter your desired username for this session (no special characters allowed)" + Style.RESET_ALL)
     
     while True:
         user_1_endpoint = input("Enter your username: ")
 
-        #Chekcing to make sure that the user record is up to date with the devices current IP address
-        current_device_ip = pub_ip_checker()
-
-        try:
-            ip_list = list({addr[-1][0] for addr in socket.getaddrinfo(f'www.{user_1_endpoint}.duckdns.org', 0, 0, 0, 0)})
-
-            if current_device_ip in ip_list:
+        #Check username for valid characters
+        for char in ["'", "`", "~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "=", "+", "[", "{", "]", "}", "\\", "|", ":", ";", "<", ",", ">", "/", "?", '"', " "]:
+            if char in user_1_endpoint:
+                print(Fore.RED + "\n\t[!] ERROR: Invalid character in username: " + char +" [!]" + Style.RESET_ALL)
+                time.sleep(3)
+                val1 = False
                 break
             
             else:
-                print(Fore.RED + "\n\t[!] ERROR: DNS Record for your username does not match current IP![!]" + Style.RESET_ALL)
-                time.sleep(3)              
+                val1 = True
 
-        except socket.gaierror:
-            print(Fore.RED + "\n\t[!] ERROR: DNS Record for your username does not exist![!]" + Style.RESET_ALL)
-            time.sleep(3)
-
-    #Get the username of the other user that we need to contact
-    print(Fore.LIGHTCYAN_EX + "\nWe need the username of the person you want to chat with (thay need to have already set one up following the information guide)\nThe user needs to be online in order to chat! We will check to see\nif they are online, but it the request times out, IsoCHAT will quit!" + Style.RESET_ALL)
-
-    while True:
-        user_2_endpoint = input("Enter the username of the person you wish to chat with: ")
-
-        try:
-            #Check and make sure that the user is registered
-            endpoint_user_ip = list({addr[-1][0] for addr in socket.getaddrinfo(f'www.{user_2_endpoint}.duckdns.org', 0, 0, 0, 0)})
+        if val1:
             break
 
-        except socket.gaierror:
-            print(Fore.RED + "\n\t[!] ERROR: DNS Record for your partner does not exist! Make sure you entered the username correctly or that they have registered! [!]" + Style.RESET_ALL)
-            time.sleep(3)
+    #Get the username of the other user that we need to contact
+    print(Fore.LIGHTCYAN_EX + "\nEnter the username of the person you want to chat with for this session (no special characters allowed)" + Style.RESET_ALL)
+
+    while True:
+        user_2_endpoint = input("Enter partner username: ")
+
+        #Check username for valid characters
+        for char in ["'", "`", "~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "=", "+", "[", "{", "]", "}", "\\", "|", ":", ";", "<", ",", ">", "/", "?", '"', " "]:
+            if char in user_1_endpoint:
+                print(Fore.RED + "\n\t[!] ERROR: Invalid character in partner username: " + char +" [!]" + Style.RESET_ALL)
+                time.sleep(3)
+                val2 = False
+                break
+            
+            else:
+                val2 = True
+
+        if val2:
+            break
 
     #Ask the user which server they wish to connect to
     print(Fore.LIGHTCYAN_EX + "\nPlease select one of the following server info to connect to (your partner must be on the same server!):\n" + Style.RESET_ALL)
 
     while True:
-        proxy_server_ip = input("Server IP (of DuckDNS FQDN): ")
-        proxy_server_port = input("Proxy Server Port: ")
+        proxy_server_ip = input("Server IP: ")
+        proxy_server_port = input("Server Port: ")
 
         try: 
             test_ip = ipaddress.ip_address(proxy_server_ip)
         except:
-            print(Fore.RED + "\n\t[!] ERROR: Please check that you entered a valid IP/FQDN for the server and a proper port number! [!]\n" + Style.RESET_ALL)
+            print(Fore.RED + "\n\t[!] ERROR: Please check that you entered a valid IP for the server and a proper port number! [!]\n" + Style.RESET_ALL)
 
-        if test_ip or "duckdns.org" in proxy_server_ip:
-            if proxy_server_port != "":
-                break
+        if proxy_server_port != "":
+            break
 
         else:
-            print(Fore.RED + "\n\t[!] ERROR: Please check that you entered a valid IP/FQDN for the server and a proper port number! [!]\n" + Style.RESET_ALL)
+            print(Fore.RED + "\n\t[!] ERROR: Please check that you entered a valid IP for the server and a proper port number! [!]\n" + Style.RESET_ALL)
         
     #Connect to the cloud server/proxy for forwarding communication back and forth and let the user know what is happening as they wait
     print(Fore.LIGHTRED_EX + "\n\tCreating a secure connection to the communication proxy. Please wait.")
@@ -172,10 +172,15 @@ def chat_session_setup():
     context.set_ciphers = "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256"
 
     #Load CA certificate with which the client will validate the server certificate
-    context.load_verify_locations(f'{project_root}ca-chain-bundle.cert.pem')
+    try:
+        context.load_verify_locations(f'{project_root}ca-chain-bundle.cert.pem')
 
-    #Load client certificate
-    context.load_cert_chain(certfile=f'{project_root}client.cert.pem', keyfile=f'{project_root}client.key.pem')
+        #Load client certificate
+        context.load_cert_chain(certfile=f'{project_root}client.cert.pem', keyfile=f'{project_root}client.key.pem')
+
+    except:
+        print(Fore.RED + "\n\t[!] Unable to load the client certificates for the SSL connection! Please be sure to read the user guide to complete the setup! [!]" + Style.RESET_ALL)
+        quit()
 
     #Initialize the TCP socket to the proxy server and connect
     try:
@@ -196,7 +201,7 @@ def chat_session_setup():
             secure_client_socket.close()
             quit()
             
-        if 'localhost' not in subject['commonName'] or "SEC" not in subject["organizationalUnitName"] or "admin.cscg@gmail.com" in subject["emailAddress"]:
+        if 'server' not in subject['commonName'] or "SEC_IsoCHAT" not in subject["organizationalUnitName"]:
             print(Fore.RED + "\n\t[!] Unable to validate certificate [!]" + Style.RESET_ALL)
             secure_client_socket.close()
             quit()
@@ -238,21 +243,6 @@ def chat_session_setup():
     #Call the messenger function to kick off what we came here for
     session_start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     messenger()
-
-#Function used for getting the publlic IP address of the device this is running on in order to validate user
-def pub_ip_checker():
-    try:
-        ip = get('https://api.ipify.org').text
-
-        if not ipaddress.ip_address(ip):
-            print(Fore.RED + "\n\t[!] ERROR: Public IP returned was not valid! Check you connection and public IP and try again! [!]" + Style.RESET_ALL)
-
-    except:
-        print(Fore.RED + "\n\t[!] ERROR: Unable to get public IP! Check your connection! [!]" + Style.RESET_ALL)
-        time.sleep(3)
-        quit()
-
-    return ip
 
 #Function used to get response from proxy server to see if the other user is online
 def user_onilne_checker():
@@ -354,7 +344,7 @@ def decode_response_message(received_payload):
         response_hash = decoded_payload[-64:]
         cypher_text = decoded_payload.split(response_hash)[0]
 
-        data = hashlib.sha256(str(cypher_text).encode())
+        data = hashlib.sha512(str(cypher_text).encode())
         verified_hash = data.hexdigest()
 
         if response_hash == verified_hash:
@@ -482,7 +472,7 @@ def messenger():
                 x += 1
 
             #Create the message payload and hash it to make sure nothing happens in transit
-            payload_hash = hashlib.sha256(encrypted_message.encode())
+            payload_hash = hashlib.sha512(encrypted_message.encode())
             full_message_payload = f'{encrypted_message}{payload_hash.hexdigest()}'
 
             #Randomly encode the message payload to base64 or hex for further obfuscation
