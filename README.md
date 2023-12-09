@@ -18,6 +18,7 @@
 - [IsoCHAT Features](#isochat-features)
   - [Decentralization](#decentralization)
   - [P2P Chat Client](#p2p-chat-client)
+  - [Proxy Server](#proxy-server)
   - [Security Considerations](#security-considerations)
   - [Feature Roadmap](#feature-roadmap)
 - [Tutorial and Usage](#tutorial-and-usage)
@@ -38,6 +39,9 @@
 
 <br><br>
 ## P2P Chat Client
+
+<br><br>
+## Proxy Server
 
 <br><br>
 ## Security Considerations
