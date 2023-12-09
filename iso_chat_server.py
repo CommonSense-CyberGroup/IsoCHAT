@@ -20,7 +20,7 @@ Purpose:
     -Config file contains necessary configuration items to run server
 
 To Do:
-    -Down the road, set up group chatting / rooms
+    -Down the road, set up group chatting (allowing others to join an existing session / multiple users to chat wth)
     _in production, this needs to have a cron job that runs every minute to check to see if the script is running. If it is not, start it <docker??>
 '''
 
@@ -33,6 +33,7 @@ from os.path import dirname     #https://docs.python.org/3/library/os.html - For
 import logging                  #https://docs.python.org/3/library/logging.html - Saves generic error messages to logs so we can get stats on anything out of the ordinary
 from datetime import datetime   #https://docs.python.org/3/library/datetime.html - For getting the current date
 import sys                      #https://docs.python.org/3/library/sys.html - Used for error catching
+import ipaddress                #https://docs.python.org/3/library/ipaddress.html - Used for validating the IP we get back using requests
 
 
 ### DEFINE VARIABLES ###
@@ -78,10 +79,10 @@ def read_config():
                 #Pull out logger path
                 try:
                     if "server_log_location" in row:
-                        if str((row.split(":")[1].lower().replace("\n", ""))) == "":
+                        if str((row.split(":")[1].replace("\n", ""))) == "":
                             log_location = f'{dirname(__file__)}/'
                         else:
-                            log_location = str((row.split(":")[1].lower().replace("\n", "")))
+                            log_location = str((row.split(":")[1].replace("\n", "")))
 
                         #Init logger
                         logger = init_logger(log_location)
@@ -94,6 +95,15 @@ def read_config():
                 try:
                     if "server_ip" in row:
                         SERVER_HOST = (row.split(":")[1].lower().replace("\n", ""))
+
+                        #Validate IP
+                        try:
+                            test_ip = ipaddress.ip_address(SERVER_HOST)
+
+                        except:
+                            logger.error("Server_ip in config file is not a valid IP address!")
+                            quit()
+
                 except:
                         logger.error("Unable to read server IP from config file! Please check syntax!")
                         quit()
@@ -102,14 +112,25 @@ def read_config():
                 try:
                     if "server_port" in row:
                         SERVER_PORT = int((row.split(":")[1].lower().replace("\n", "")))
+
+                        #Validate port
+                        if SERVER_PORT < 0 or SERVER_PORT > 65535:
+                            logger.error("Server_port in config file is not a valid port number!")
+                            quit()
+
                 except:
                         logger.error("Unable to read server port from config file! Please check syntax!")
                         quit()
 
                 #Pull out concurrent connection count
                 try:
-                    if "concurrent_cnnections" in row:
+                    if "concurrent_connections" in row:
                         max_connections = int((row.split(":")[1].lower().replace("\n", "")))
+
+                        #Validate connection count
+                        if max_connections < 2 or max_connections > 20:
+                            logger.error("Concurrent Connections in config file is not valid! Must be between 2 and 20")
+
                 except:
                         logger.error("Unable to read concurrent_connections from config file! Please check syntax!")
                         quit()
@@ -117,11 +138,11 @@ def read_config():
                 #Pull out server cert location
                 try:
                     if "server_cert" in row:
-                        if row.split(":")[1].lower().replace("\n", "") == "":
+                        if row.split(":")[1].replace("\n", "") == "":
                             server_cert = f'{dirname(__file__)}/'
                             
                         else:
-                            server_cert = str(row.split(":")[1].lower().replace("\n", ""))
+                            server_cert = str(row.split(":")[1].replace("\n", ""))
                 except:
                         logger.error("Unable to read server_cert from config file! Please check syntax!")
                         quit()

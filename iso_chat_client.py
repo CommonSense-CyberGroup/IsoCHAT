@@ -23,7 +23,6 @@ Purpose:
 To Do:
     -Pretty UI option as well instead of CLI only (possibility of both)
     -Add additional error checking for special symbols in username validation (include more wacky ascii characters)
-    -Set up config file like server for user to define their own values (can be used to bypass prompts)
 '''
 
 ###IMPORT LIBRARIES###
@@ -39,14 +38,104 @@ import time                     #https://docs.python.org/3/library/time.html - F
 import socket                   #https://docs.python.org/3/library/socket.html - Used for setting up the socket connections to the proxy server
 import ssl                      #https://docs.python.org/3/library/ssl.html - Used for encrypting client sockets to the proxy server for secure communication
 import ipaddress                #https://docs.python.org/3/library/ipaddress.html - Used for validating the IP we get back using requests
+import sys                      #https://docs.python.org/3/library/sys.html - Used for error catching
 
 
-###DEFINE VARIABLES###
+### DEFINE VARIABLES ###
 project_root = f'{dirname(__file__)}/' #Holds the root of the project for output
 stop_threads = False                #Used for stopping the thread without throwing errors
 
 
-###FUNCTIONS###
+### FUNCTIONS ###
+#Function to read in configuration file in order to get important and relevant values
+def read_config():
+    #Set global variables
+    global SERVER_PORT, SERVER_HOST, USER1, USER2, CERT_LOCATION
+
+    #Open the config file
+    try:
+        with open(f'{dirname(__file__)}/server.conf') as file:
+            rows = file.readlines()
+
+            for row in rows:
+                #Pull out server IP
+                try:
+                    if "server_ip" in row:
+                        SERVER_HOST = (row.split(":")[1].lower().replace("\n", ""))
+
+                        #Validate IP
+                        try:
+                            test_ip = ipaddress.ip_address(SERVER_HOST)
+
+                        except:
+                            print(Fore.RED + "Invalid IP address in config file!" + Style.RESET_ALL)
+                            quit()
+
+                except:
+                        print(Fore.RED + "Unable to read server IP from config file! Please check syntax!" + Style.RESET_ALL)
+                        quit()
+
+                #Pull out server port
+                try:
+                    if "server_port" in row:
+                        SERVER_PORT = int((row.split(":")[1].lower().replace("\n", "")))
+
+                        #Validate port
+                        if SERVER_PORT < 0 or SERVER_PORT > 65535:
+                            print(Fore.RED + "Invalid port in config file!" + Style.RESET_ALL)
+                            quit()
+
+                except:
+                        print(Fore.RED + "Unable to read server port from config file! Please check syntax!" + Style.RESET_ALL)
+                        quit()
+
+                #Pull out username 1
+                try:
+                    if "user_1_endpoint" in row:
+                        USER1 = int((row.split(":")[1].replace("\n", "")))
+
+                        #Validate user1
+                        if any(char in "'`~!@#$%^&*()_=+[{]}\\|:;<,>/?' " for char in USER1):
+                            print(Fore.RED + "Invalid user_1_endpoint from config file! Please check syntax and remove special characters!" + Style.RESET_ALL)
+                            quit()
+
+                except:
+                        print(Fore.RED + "Unable to read user_1_endpoint from config file! Please check syntax!" + Style.RESET_ALL)
+                        quit()
+
+                #Pull out username 2
+                try:
+                    if "user_2_endpoint" in row:
+                        USER1 = int((row.split(":")[1].replace("\n", "")))
+
+                        #Validate user2
+                        if any(char in "'`~!@#$%^&*()_=+[{]}\\|:;<,>/?' " for char in USER2):
+                            print(Fore.RED + "Invalid user_2_endpoint from config file! Please check syntax and remove special characters!" + Style.RESET_ALL)
+                            quit()
+
+                except:
+                        print(Fore.RED + "Unable to read user_2_endpoint from config file! Please check syntax!" + Style.RESET_ALL)
+                        quit()
+
+                #Pull out client cert location
+                try:
+                    if "certificate_path" in row:
+                        if row.split(":")[1].replace("\n", "") == "":
+                            CERT_LOCATION = f'{dirname(__file__)}/'
+                            
+                        else:
+                            CERT_LOCATION = str(row.split(":")[1].replace("\n", ""))
+
+                except:
+                        print(Fore.RED + "Unable to read certificate_path from config file! Please check syntax!" + Style.RESET_ALL)
+                        quit()
+    except:
+        print("[!] Issue with client config file: ", sys.exc_info())
+        quit()
+
+    #Close file to stay clean
+    file.close()
+
 #Function to get the chat startup information from the user
 def pre_chat():
     #Set up global variables
@@ -105,63 +194,101 @@ def chat_session_setup():
     key = ''.join(format(ord(x), 'b') for x in key)
 
     #Set up the current username
-    print(Fore.LIGHTCYAN_EX + "\nEnter your desired username for this session (no special characters allowed)" + Style.RESET_ALL)
-    
-    while True:
-        user_1_endpoint = input("Enter your username: ")
+    if USER1 == "":
+        print(Fore.LIGHTCYAN_EX + "\nEnter your desired username for this session (no special characters allowed)" + Style.RESET_ALL)
+        
+        while True:
+            user_1_endpoint = input("Enter your username: ")
 
-        #Check username for valid characters
-        for char in ["'", "`", "~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "=", "+", "[", "{", "]", "}", "\\", "|", ":", ";", "<", ",", ">", "/", "?", '"', " "]:
-            if char in user_1_endpoint:
-                print(Fore.RED + "\n\t[!] ERROR: Invalid character in username: " + char +" [!]" + Style.RESET_ALL)
+            #Check username for valid characters
+            if any(char in "'`~!@#$%^&*()_=+[{]}\\|:;<,>/?' " for char in user_1_endpoint):
+                print(Fore.RED + "\n\t[!] ERROR: Invalid character in username! [!]" + Style.RESET_ALL)
                 time.sleep(3)
                 val1 = False
-                break
-            
+                
             else:
                 val1 = True
 
-        if val1:
-            break
+            if val1:
+                break
+
+    else:
+        print(Fore.LIGHTCYAN_EX + "\nFor this chat session, your username will be " + USER1 + " (defined from the config file)" + Style.RESET_ALL)
+        time.sleep(1)
 
     #Get the username of the other user that we need to contact
-    print(Fore.LIGHTCYAN_EX + "\nEnter the username of the person you want to chat with for this session (no special characters allowed)" + Style.RESET_ALL)
+    if USER2 == "":
+        print(Fore.LIGHTCYAN_EX + "\nEnter the username of the person you want to chat with for this session (no special characters allowed)" + Style.RESET_ALL)
 
-    while True:
-        user_2_endpoint = input("Enter partner username: ")
+        while True:
+            user_2_endpoint = input("Enter partner username: ")
 
-        #Check username for valid characters
-        for char in ["'", "`", "~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "=", "+", "[", "{", "]", "}", "\\", "|", ":", ";", "<", ",", ">", "/", "?", '"', " "]:
-            if char in user_1_endpoint:
-                print(Fore.RED + "\n\t[!] ERROR: Invalid character in partner username: " + char +" [!]" + Style.RESET_ALL)
-                time.sleep(3)
-                val2 = False
-                break
-            
+            #Check username for valid characters
+            if any(char in "'`~!@#$%^&*()_=+[{]}\\|:;<,>/?' " for char in user_2_endpoint):
+                    print(Fore.RED + "\n\t[!] ERROR: Invalid character in partner username! [!]" + Style.RESET_ALL)
+                    time.sleep(3)
+                    val2 = False
+                    break
+                
             else:
                 val2 = True
 
-        if val2:
-            break
+            if val2:
+                break
+
+    else:
+        print(Fore.LIGHTCYAN_EX + "\nFor this chat session, your partner will be " + USER2 + " (defined from the config file)" + Style.RESET_ALL)
+        time.sleep(1)
 
     #Ask the user which server they wish to connect to
-    print(Fore.LIGHTCYAN_EX + "\nPlease select one of the following server info to connect to (your partner must be on the same server!):\n" + Style.RESET_ALL)
+    if SERVER_HOST == "" or SERVER_PORT == "":
+        print(Fore.LIGHTCYAN_EX + "\nPlease select one of the following server info to connect to (your partner must be on the same server!):\n" + Style.RESET_ALL)
 
-    while True:
-        proxy_server_ip = input("Server IP: ")
-        proxy_server_port = input("Server Port: ")
+        while True:
+            proxy_server_ip = input("Server IP: ")
+            proxy_server_port = input("Server Port: ")
 
-        try: 
-            test_ip = ipaddress.ip_address(proxy_server_ip)
-        except:
-            print(Fore.RED + "\n\t[!] ERROR: Please check that you entered a valid IP for the server and a proper port number! [!]\n" + Style.RESET_ALL)
+            try: 
+                test_ip = ipaddress.ip_address(proxy_server_ip)
+            except:
+                print(Fore.RED + "\n\t[!] ERROR: Please check that you entered a valid IP for the server and a proper port number! [!]\n" + Style.RESET_ALL)
 
-        if proxy_server_port != "":
-            break
+            if proxy_server_port != "":
+                break
 
-        else:
-            print(Fore.RED + "\n\t[!] ERROR: Please check that you entered a valid IP for the server and a proper port number! [!]\n" + Style.RESET_ALL)
-        
+            else:
+                print(Fore.RED + "\n\t[!] ERROR: Please check that you entered a valid IP for the server and a proper port number! [!]\n" + Style.RESET_ALL)
+    
+    else:
+        while True:
+            print(Fore.LIGHTCYAN_EX + "\nPlease confirm the proxy server info below is correct:\nProxy Server: " + SERVER_HOST + "\nProxy Server Port: " + SERVER_PORT + "" + Style.RESET_ALL)
+
+            valid_server_info = input("Is the proxy server info correct? (y/n): ")
+
+            if valid_server_info.lower() != "y" or valid_server_info != "n":
+                print(Fore.RED + "\n\t[!] ERROR: Please check that you entered a valid IP for the server and a proper port number! [!]\n" + Style.RESET_ALL)
+
+            if valid_server_info.lower() == "y":
+                break
+
+            else:
+                while True:
+                    proxy_server_ip = input("Server IP: ")
+                    proxy_server_port = input("Server Port: ")
+
+                    try: 
+                        test_ip = ipaddress.ip_address(proxy_server_ip)
+                    except:
+                        print(Fore.RED + "\n\t[!] ERROR: Please check that you entered a valid IP for the server and a proper port number! [!]\n" + Style.RESET_ALL)
+
+                    if proxy_server_port != "":
+                        break
+
+                    else:
+                        print(Fore.RED + "\n\t[!] ERROR: Please check that you entered a valid IP for the server and a proper port number! [!]\n" + Style.RESET_ALL)
+
+                break
+
     #Connect to the cloud server/proxy for forwarding communication back and forth and let the user know what is happening as they wait
     print(Fore.LIGHTRED_EX + "\n\tCreating a secure connection to the communication proxy. Please wait.")
 
