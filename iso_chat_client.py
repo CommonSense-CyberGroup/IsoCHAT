@@ -38,6 +38,7 @@ To Do:
 from threading import Thread    #https://docs.python.org/3/library/threading.html - Used for threading socket connections to the proxy server
 import secrets                   #https://docs.python.org/3/library/secrets.html - Used for generating random numbers for obfuscation
 from os.path import dirname     #https://docs.python.org/3/library/os.html - For setting up the root dir of the script so we can save log file, and access other scripts/info
+import os                       #https://docs.python.org/3/library/os.html - For determining OS and user who ran the chat
 from getpass import getpass     #https://docs.python.org/3/library/getpass.html - For getting information about the current user running the script
 from colorama import Fore, Style        #https://pypi.org/project/colorama/ - For making the CLI version of this script a little prettier
 import hashlib                  #https://docs.python.org/3/library/hashlib.html - For hashing the messages to ensure there has been no tampering
@@ -635,6 +636,20 @@ def messenger():
 
 ###MAIN###
 if __name__ == '__main__':
+    #Validate the we were run as root/admin
+    if os.name == 'nt':
+        try:
+            import ctypes
+            pass
+
+        except:
+            print(Fore.RED + "\n\t[!] Must be run as an administrator! [!]" + Style.RESET_ALL)
+            exit(1)
+
+    elif os.geteuid() != 0:
+        print(Fore.RED + "\n\t[!] Must be run as an administrator! [!]" + Style.RESET_ALL)
+        exit(1)
+
     #Error checking in the case the user hits ctrl-c in a cmd prompt running this script
     try:
         #Call the pre-chat function to 
