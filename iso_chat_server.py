@@ -26,7 +26,7 @@ To Do:
     _in production, this needs to have a cron job that runs every minute to check to see if the script is running. If it is not, start it <docker??>
 '''
 
-###IMPORT LIBRARIES###
+### IMPORT LIBRARIES ###
 import socket                   #https://docs.python.org/3/library/socket.html - Used for setting up the socket connections to the users
 from threading import Thread    #https://docs.python.org/3/library/threading.html - Used for threading socket connections to the users
 import ssl                      #https://docs.python.org/3/library/ssl.html - Used for creating a secure socket between server and client
@@ -36,7 +36,10 @@ import logging                  #https://docs.python.org/3/library/logging.html 
 from datetime import datetime   #https://docs.python.org/3/library/datetime.html - For getting the current date
 import sys                      #https://docs.python.org/3/library/sys.html - Used for error catching
 import ipaddress                #https://docs.python.org/3/library/ipaddress.html - Used for validating the IP we get back using requests
-
+import os                       #https://docs.python.org/3/library/os.html - For determining running OS
+import subprocess               #https://docs.python.org/3/library/subprocess.html - Used for subprocessing other scripts on the host system
+from getpass import getpass     #https://docs.python.org/3/library/getpass.html - For getting information about the current user running the script
+import re                       #https://docs.python.org/3/library/re.html - Used for validation and sanitization
 
 ### DEFINE VARIABLES ###
 user_list = []          #List to keep track of who is here and online
@@ -45,7 +48,7 @@ disconnected_users = 0  #Tracking the number of users that have disconnected for
 connected_username = "" #Holding the name of the connected user to the server
 stop_threads = False    #Used for stopping the thread without throwing errors
 user_dict = {}          #Used for TEMPORARILY storing username and IP so we can send messages to the correct person
-
+key_pattern = re.compile(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%^&*()_=+[{]}\\|:;<,>/?"])[A-Za-z\d@$!%^&*()_=+[{]}\\|:;<,>/?"]{12,}$')    #Regex pattern for encryption keys
 
 #Set generic logging variables so we can get stats from the server
 server_start = datetime.now()   #Used for getting the time the script started for uptime
@@ -141,7 +144,7 @@ def read_config():
                 try:
                     if "server_cert" in row:
                         if row.split(":")[1].replace("\n", "") == "":
-                            server_cert = f'{dirname(__file__)}/'
+                            server_cert = f'{dirname(__file__)}/cert_generation/'
                             
                         else:
                             server_cert = str(row.split(":")[1].replace("\n", ""))
@@ -155,6 +158,41 @@ def read_config():
 
     #Close file to stay clean
     file.close()
+
+#Function for creating certificates at startup if the user wants them auto-created
+def auto_cert_gen():
+    #Check to see if there are existing certificates and ask to overwrite them
+
+
+    #For Windows OS
+    if os.name == 'nt':
+        try:
+            #Call PS1 script to generate certs
+            sub_out = subprocess.call(["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", "./cert_generation/windows_cert.ps1"])
+
+            #Print output to screen for user
+            print(sub_out.decode('utf-8'))
+
+            return True
+
+        except subprocess.CalledProcessError as e:
+            print("\n[!] Error [!] While generating the certificates for IsoCHAT, the following error occurred: " + e + " [!]")
+            return False
+    
+    #All others
+    else:
+        try:
+            #Call Shell script to generate certs
+            sub_out = subprocess.check_call(['bash', "./cert_generation/linux_cert.sh"])
+
+            #Print output to screen for user
+            print(sub_out.decode('utf-8'))
+
+            return True
+        
+        except subprocess.CalledProcessError as e:
+            print("\n[!] Error [!] While generating the certificates for IsoCHAT, the following error occurred: " + e + " [!]")
+            return False
 
 #Function to set up the sockets on the server and start listening for connections
 def socket_setup():
@@ -270,8 +308,36 @@ def listen_for_client(cs):
 
 ### MAIN ###
 if __name__ == '__main__':
+    #Validate the we were run as root/admin
+    if os.name == 'nt':
+        try:
+            import ctypes
+            pass
+
+        except:
+            print("\n[!] Must be run as an administrator! [!]")
+            exit(1)
+
+    elif os.geteuid() != 0:
+        print("\n[!] Must be run as an administrator! [!]")
+        exit(1)
+
     #Get the config so we know what IP to listen on
     read_config()
+
+    #Grab the Server Key from the user for encryption (encrypts usernames only  within an already encrypted HTTPS session and also prevents unwanted parties from accessing/spoofing the chat session )
+    print("\n\nPlease enter the SERVER encryption token for this chat session below.\nYour chat partner AND the proxy server will also need to use this same token in order to communicate properly!\n(This will not be visible as you type)")
+
+    #Error checking to ensure that the user is entering a server key that is long enough
+    while True:
+        server_key = getpass("Token: ")
+
+        #Check for complexity in the key
+        if key_pattern.match(server_key):
+            break
+
+        else:
+            print("\n[!] Error [!] Server Key must meet the following requirements!\n\t-Minimum of 12 Characters\n\t-Contains Numbers\n\t-Contains Special Characters\n\t-Contains upper and lowecase letters\n")
 
     #Call socket setup
     socket_setup()

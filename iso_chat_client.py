@@ -34,7 +34,7 @@ To Do:
     -Integrate a Tor option to proxy communication through a tor node? (automatically so the user does not need to set up Tor on their own host)
 '''
 
-###IMPORT LIBRARIES###
+### IMPORT LIBRARIES ###
 from threading import Thread    #https://docs.python.org/3/library/threading.html - Used for threading socket connections to the proxy server
 import secrets                   #https://docs.python.org/3/library/secrets.html - Used for generating random numbers for obfuscation
 from os.path import dirname     #https://docs.python.org/3/library/os.html - For setting up the root dir of the script so we can save log file, and access other scripts/info
@@ -50,11 +50,13 @@ import ssl                      #https://docs.python.org/3/library/ssl.html - Us
 import ipaddress                #https://docs.python.org/3/library/ipaddress.html - Used for validating the IP we get back using requests
 import sys                      #https://docs.python.org/3/library/sys.html - Used for error catching
 import re                       #https://docs.python.org/3/library/re.html - Used for validation and sanitization
-
+import subprocess               #https://docs.python.org/3/library/subprocess.html - Used for subprocessing other scripts on the host system
 
 ### DEFINE VARIABLES ###
 project_root = f'{dirname(__file__)}/' #Holds the root of the project for output
 stop_threads = False                #Used for stopping the thread without throwing errors
+
+key_pattern = re.compile(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%^&*()_=+[{]}\\|:;<,>/?"])[A-Za-z\d@$!%^&*()_=+[{]}\\|:;<,>/?"]{12,}$')    #Regex pattern for encryption keys
 
 ### FUNCTIONS ###
 #Function to read in configuration file in order to get important and relevant values
@@ -131,7 +133,7 @@ def read_config():
                 try:
                     if "certificate_path" in row:
                         if row.split(":")[1].replace("\n", "") == "":
-                            CERT_LOCATION = f'{dirname(__file__)}/'
+                            CERT_LOCATION = f'{dirname(__file__)}/cert_generation/'
                             
                         else:
                             CERT_LOCATION = str(row.split(":")[1].replace("\n", ""))
@@ -146,34 +148,74 @@ def read_config():
     #Close file to stay clean
     file.close()
 
+#Function for creating certificates at startup if the user wants them auto-created
+def auto_cert_gen():
+    #Check to see if there are existing certificates and ask to overwrite them
+
+    
+    #For windows OS
+    if os.name == 'nt':
+        try:
+            sub_out = subprocess.call(["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", "./cert_generation/windows_cert.ps1"])
+
+            #Print output to screen for user
+            print(sub_out.decode('utf-8'))
+
+            return True
+        
+        except subprocess.CalledProcessError as e:
+            print(Fore.RED + "\n[!] Error [!] While generating the certificates for IsoCHAT, the following error occurred: " + e + " [!]" + Style.RESET_ALL)
+            return False
+    
+    #All others
+    else:
+        try:
+            sub_out = subprocess.check_call(['bash', "./cert_generation/linux_cert.sh"])
+
+            #Print output to screen for user
+            print(sub_out.decode('utf-8'))
+
+            return True
+        
+        except subprocess.CalledProcessError as e:
+            print(Fore.RED + "\n[!] Error [!] While generating the certificates for IsoCHAT, the following error occurred: " + e + " [!]" + Style.RESET_ALL)
+            return False
+
 #Function to get the chat startup information from the user
 def pre_chat():
     #Set up global variables
-    global key
+    global key, server_key
 
     #Show the user the welcome prompt
     print(Fore.LIGHTBLUE_EX + "\nIsoCHAT - Common Sense Cyber Group\n\n")
 
-    #Ask the user to enter the key they will use for the XOR cipher
-    print(Fore.LIGHTYELLOW_EX + "BE SURE TO READ AND FOLLOW THE INFORMATION GUIDE BEFORE FIRST USE!!!" + Fore.LIGHTCYAN_EX + "\n\nPlease enter the encryption token for this chat session below.\nYour chat partner will also need to use this same token in order to communicate properly!\n(This will not be visible as you type)" + Style.RESET_ALL)
+    #Ask the user to enter the Client key they will use for the XOR cipher
+    print(Fore.LIGHTYELLOW_EX + "BE SURE TO READ AND FOLLOW THE INFORMATION GUIDE BEFORE FIRST USE!!!" + Fore.LIGHTCYAN_EX + "\n\nPlease enter the CLIENT encryption token for this chat session below.\nYour chat partner will also need to use this same token in order to communicate properly!\n(This will not be visible as you type)" + Style.RESET_ALL)
     
-    #Error checking to ensure that the user is entering a key that is long enough
+    #Error checking to ensure that the user is entering a client key that is long enough
     while True:
         key = getpass("Token: ")
 
         #Check for complexity in the key
-        if len(key) < 12:
-            print(Fore.RED + "\n[!] Error [!] Key must meet the following requirements!\n\t-Minimum of 12 Characters\n\t-Contains Numbers\n\t-Contains Special Characters\n\t-Contains upper and lowecase letters\n" + Style.RESET_ALL)
-        elif not any(char.islower() for char in key):
-            print(Fore.RED + "\n[!] Error [!] Key must meet the following requirements!\n\t-Minimum of 12 Characters\n\t-Contains Numbers\n\t-Contains Special Characters\n\t-Contains upper and lowecase letters\n" + Style.RESET_ALL)
-        elif not any(char.isupper() for char in key):
-            print(Fore.RED + "\n[!] Error [!] Key must meet the following requirements!\n\t-Minimum of 12 Characters\n\t-Contains Numbers\n\t-Contains Special Characters\n\t-Contains upper and lowecase letters\n" + Style.RESET_ALL)
-        elif not any(char in "'`~!@#$%^&*()_=+[{]}\\|:;<,>/?'" for char in key):
-            print(Fore.RED + "\n[!] Error [!] Key must meet the following requirements!\n\t-Minimum of 12 Characters\n\t-Contains Numbers\n\t-Contains Special Characters\n\t-Contains upper and lowecase letters\n" + Style.RESET_ALL)
-        elif not any(char.isdigit() for char in key):
-            print(Fore.RED + "\n[!] Error [!] Key must meet the following requirements!\n\t-Minimum of 12 Characters\n\t-Contains Numbers\n\t-Contains Special Characters\n\t-Contains upper and lowecase letters\n" + Style.RESET_ALL)
-        else:
+        if key_pattern.match(key):
             break
+
+        else:
+            print(Fore.RED + "\n[!] Error [!] Client Key must meet the following requirements!\n\t-Minimum of 12 Characters\n\t-Contains Numbers\n\t-Contains Special Characters\n\t-Contains upper and lowecase letters\n" + Style.RESET_ALL)
+
+    #Ask the user to enter the Server key they will use for the XOR cipher
+    print(Fore.LIGHTCYAN_EX + "\n\nPlease enter the SERVER encryption token for this chat session below.\nYour chat partner AND the proxy server will also need to use this same token in order to communicate properly!\n(This will not be visible as you type)" + Style.RESET_ALL)
+
+    #Error checking to ensure that the user is entering a server key that is long enough
+    while True:
+        server_key = getpass("Token: ")
+
+        #Check for complexity in the key
+        if key_pattern.match(server_key):
+            break
+
+        else:
+            print(Fore.RED + "\n[!] Error [!] Server Key must meet the following requirements!\n\t-Minimum of 12 Characters\n\t-Contains Numbers\n\t-Contains Special Characters\n\t-Contains upper and lowecase letters\n" + Style.RESET_ALL)
     
     #Prompt the user with additional information, asking them to accept warnings and continue to enable to start the chat service
     while True:
@@ -652,7 +694,7 @@ if __name__ == '__main__':
 
     #Error checking in the case the user hits ctrl-c in a cmd prompt running this script
     try:
-        #Call the pre-chat function to 
+        #Call the pre-chat function to begin setup of app
         pre_chat()
 
     except KeyboardInterrupt:
