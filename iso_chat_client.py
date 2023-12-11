@@ -7,7 +7,7 @@ Developers:
     Common Sense Cyber Group
 
 Created: 08/05/2021
-Updated: 12/08/2023
+Updated: 12/10/2023
 
 Version 1.1.3
 
@@ -20,8 +20,18 @@ Purpose:
         All of the encryption/decryption is done client side so the server only sees the name of the user that the chat request is going to
     -For a more detailed look into the security features, check out the IsoCHAT Informational Guide    
 
+Use Cases:
+    -Simple anonymous chatting knowing the conversation is not being saved / archived between clients
+    -Journalism (chatting with sources that need to remain anonymous)
+    -Red Teaming (slim chat client that encrypts conversations and can be deployed within the target network)
+    -Communication in places where internet traffic may be monitored or notmal internet communication methods are not available/safe
+
 To Do:
+    -Integrate a cert creation tool if certs are not detected (would ned to be able to install software onto local machine)
     -Pretty UI option as well instead of CLI only (possibility of both)
+
+    -Is there a way we can also encode/encrypt the usernames being passed back and forth? This could pose useful if there was cert stripping taking place (need to test)
+    -Integrate a Tor option to proxy communication through a tor node? (automatically so the user does not need to set up Tor on their own host)
 '''
 
 ###IMPORT LIBRARIES###

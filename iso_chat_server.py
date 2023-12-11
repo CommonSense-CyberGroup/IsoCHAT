@@ -7,7 +7,7 @@ Developers:
     Common Sense Cyber Group
 
 Created: 08/06/2021
-Updated: 12/08/2023
+Updated: 12/10/2023
 
 Version 1.2.1
 
@@ -20,6 +20,8 @@ Purpose:
     -Config file contains necessary configuration items to run server
 
 To Do:
+    -Impliment a "server key" that would prevent unauthorized parties from accessing server, but also be used to decrypt usernames so they are encrypted in transit (cert stripping)
+
     -Down the road, set up group chatting (allowing others to join an existing session / multiple users to chat wth)
     _in production, this needs to have a cron job that runs every minute to check to see if the script is running. If it is not, start it <docker??>
 '''
