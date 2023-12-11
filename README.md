@@ -55,9 +55,16 @@
 <br><br>
 # Support CSCG
 
-![Monero](https://img.shields.io/badge/monero-FF6600?style=for-the-badge&logo=monero&logoColor=white)
+![Monero](https://img.shields.io/badge/monero-FF6600?style=for-the-badge&logo=monero&logoColor=white) <br>
+41w1Hx5xy4VVCWkNWZ2dGr1jJwh8Bj6dx7kDLwxWo537NE79E2W5zSXDqpkdGvPF9GBKnhZYLKEwmd1CFMDurQibN44Vv8E
+<br><br><br>
 
-![Bitcoin](https://img.shields.io/badge/Bitcoin-000?style=for-the-badge&logo=bitcoin&logoColor=white)
+![Bitcoin](https://img.shields.io/badge/Bitcoin-000?style=for-the-badge&logo=bitcoin&logoColor=white)<br>
+bc1qy8fwpk8t3fl9ss7w9q6nkn2wanqu8yn88uy93f
+<br><br><br>
+
+![Ethereum](https://img.shields.io/badge/Ethereum-3C3C3D?style=for-the-badge&logo=Ethereum&logoColor=white) <br>
+0x4d09B77E478CAA44e9002F4c9E079007aa96e610
 
 
 
