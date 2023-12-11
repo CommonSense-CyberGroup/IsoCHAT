@@ -27,11 +27,18 @@ Use Cases:
     -Communication in places where internet traffic may be monitored or notmal internet communication methods are not available/safe
 
 To Do:
-    -Integrate a cert creation tool if certs are not detected (would ned to be able to install software onto local machine)
-    -Pretty UI option as well instead of CLI only (possibility of both)
+    -Integrate a cert creation tool if certs are not detected (would ned to be able to install software onto local machine) -- NEEDS HEAVY TESTING
+    -Finish setting up proxy_server_key for encrypting of usernames as well so there are no breadcrumbs anywhere
+    -Determine deployment method (docker?)
+    
+    --Later Features:
+        -Pretty UI option as well instead of CLI only (possibility of both)
+        -Integrate a Tor option to proxy communication through a tor node? (automatically so the user does not need to set up Tor on their own host)
 
-    -Is there a way we can also encode/encrypt the usernames being passed back and forth? This could pose useful if there was cert stripping taking place (need to test)
-    -Integrate a Tor option to proxy communication through a tor node? (automatically so the user does not need to set up Tor on their own host)
+Issues:
+    -Need to test with the cert gen stuff
+        -Having each client generate their own cert with their own CA may not work. 
+        -Could potentially either switch to ONLY generating them when setting up the proxy server, or just provide them in deployment (with an option for people to make their own)
 '''
 
 ### IMPORT LIBRARIES ###
